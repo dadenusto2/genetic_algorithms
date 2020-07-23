@@ -92,15 +92,15 @@ def Ordered_single_point_crossover(first_population, size):
         str(a).replace(tmp1, tmp2)
         str(b).replace(tmp2, tmp1)
         # если подходят обе, то добавляем их
-        if 9 <= int(a, 2) <= 14 and 9 <= int(b, 2) <= 14:
+        if 9 <= int(a, 2) <= 14 and 9 <= int(b, 2) <= 14 and k != size - 1:
             second_population.append(int(a, 2))
             second_population.append(int(b, 2))
             k += 1
         # если подходит одна, добавляем ее
-        elif int(a) < 9 or int(a) > 14:
-            second_population.append(int(b))
-        elif int(b) < 9 or int(b) > 14:
-            second_population.append(int(a))
+        elif int(a, 2) < 9 or int(a, 2) > 14:
+            second_population.append(int(b, 2))
+        elif int(b, 2) < 9 or int(b, 2) > 14 or k == size - 1:
+            second_population.append(int(a, 2))
         else:
             k -= 1
     return second_population
@@ -123,27 +123,51 @@ def Cyclical_crossover(first_population, size):
         # если гены 1-ого потомка(позиции) одинаковые
         # то просто переносим первые 2 гена 2-ого
         if int(a[2]) == int(a[3]):
-            new_gene = a[:2] + b[2:4]
+            new_gene1 = a[:2] + b[2:4]
         else:
             # если у 1-ой хромосомы 2 1-ых гена-'10',
             # то переносим 2 1-ых гена из 2-ого
             # в обратном порядке
             if int(a[2]) > int(a[3]):
-                new_gene = a[:2] + b[3:1:-1]
+                new_gene1 = a[:2] + b[3:1:-1]
             # иначе(01) в прямом из 2-ого
             else:
-                new_gene = a[:2] + b[2:4]
+                new_gene1 = a[:2] + b[2:4]
         # с точностью наоборот для 2-ого
         if int(b[4]) == int(b[5]):
-            new_gene += a[4:]
+            new_gene1 += a[4:]
         else:
             if int(b[4]) > int(a[5]):
-                new_gene += a[5:3:-1]
+                new_gene1 += a[5:3:-1]
             else:
-                new_gene += a[4:]
+                new_gene1 += a[4:]
+        # для 2-ой новой хромосомы аналогично
+        if int(b[2]) == int(b[3]):
+            new_gene2 = b[:2] + a[2:4]
+        else:
+            if int(b[2]) > int(b[3]):
+                new_gene2 = b[:2] + a[3:1:-1]
+            else:
+                new_gene2 = b[:2] + a[2:4]
+        if int(a[4]) == int(a[5]):
+            new_gene2 += b[4:]
+        else:
+            if int(a[4]) > int(a[5]):
+                new_gene2 += b[5:3:-1]
+            else:
+                new_gene2 += b[4:]
         # если он находятся в [9-14], добавляем
-        if 9 <= int(new_gene, 2) <= 14:
-            second_population.append(int(new_gene, 2))
+        if 9 <= int(new_gene1, 2) <= 14 and 9 <= int(new_gene2, 2) <= 14 and k != size - 1:
+            second_population.append(int(new_gene1, 2))
+            second_population.append(int(new_gene2, 2))
+            k += 1
+        # если подходит одна, добавляем ее
+        elif int(new_gene1, 2) < 9 or int(new_gene1, 2) > 14 or (k == size - 1 and 9 <= int(new_gene2, 2) <= 14):
+            second_population.append(int(new_gene2, 2))
+        elif int(new_gene2, 2) < 9 or int(new_gene2, 2) > 14 or (k == size - 1 and 9 <= int(new_gene1, 2) <= 14):
+            second_population.append(int(new_gene1, 2))
+        else:
+            k -= 1
     return second_population
 
 
@@ -163,12 +187,20 @@ def Crossover_based_on_golden_section(first_population, size):
         l1 = int(0.618 * 4) + 1
         l2 = int((4 - 0.618 * 4) * 0.618 * 4) + 2
         # получаем новые хромосомы
-        new_gen1 = int(a[:l1] + b[l1:l2] + a[l2:], 2)
-        new_gen2 = int(b[:l1] + a[l1:l2] + b[l2:], 2)
+        new_gene1 = int(a[:l1] + b[l1:l2] + a[l2:], 2)
+        new_gene2 = int(b[:l1] + a[l1:l2] + b[l2:], 2)
         # если они находятся в [9-14], добавляем
-        if 9 <= new_gen1 <= 14 and 9 <= new_gen2 <= 14:
-            second_population.append(new_gen1)
-            second_population.append(new_gen2)
+        if 9 <= new_gene1 <= 14 and 9 <= new_gene2 <= 14 and k != size - 1:
+            second_population.append(new_gene1)
+            second_population.append(new_gene2)
+            k += 1
+        # если подходит одна, добавляем ее
+        elif new_gene1 < 9 or new_gene1 > 14 or (k == size - 1 and 9 <= new_gene2 <= 14):
+            second_population.append(new_gene2)
+        elif new_gene2 < 9 or new_gene2 > 14 or (k == size - 1 and 9 <= new_gene1 <= 14):
+            second_population.append(new_gene1)
+        else:
+            k -= 1
     return second_population
 
 
@@ -261,6 +293,9 @@ def main_function():
     if not population_size.get().isdigit() or not population_size.get():
         error = True
         output_str += "Введите размер популяции цифрами!!!\n"
+    if int(crossover_probability.get()) != 0 and int(population_size.get()) == 1:
+        error = True
+        output_str += "Для популяции размера 1 вероятность кроссинговера должна быть 0%!!!\n"
     if not number_of_generations.get().isdigit() or not number_of_generations.get():
         error = True
         output_str += "Введите количество генераций цифрами!!!\n"
@@ -270,11 +305,14 @@ def main_function():
         output_str += "Выберите стратегию создания начальной популяции!!!\n"
     if not type_of_selection_select.get():
         error = True
-        output_str += "Выберите вид селекции!!!!!!\n"
-    if not сrossover_operator_select.get():
+        output_str += "Выберите вид селекции!!!\n"
+    if int(type_of_selection_select.get()) == 2 and int(population_size.get()) == 1:
+        error = True
+        output_str += "Для популяции размера 1 Инбридинг невозможен!!!\n"
+    if not сrossover_operator_select.get() and (int(crossover_probability.get()) != 0 and int(population_size.get()) != 1):
         error = True
         output_str += "Выберите оператор кроссинговера!!!\n"
-    if not mutation_and_inversion_operators_select.get():
+    if not mutation_and_inversion_operators_select.get() and mutation_probability.get() != 0:
         error = True
         output_str += "Выберите оператор мутации и инверсии!!!\n"
     # если есть ошибки, выдается окно с их перечисление
@@ -290,14 +328,14 @@ def main_function():
         if initial_population_strategy_select.get() == 1:
             output_str += "Стратегия одеяла: \n"
             for i in range(int(population_size.get())):
-                a = random.randint(9, 14)
+                a = int(6 / (int(population_size.get()) * 2) + 6 * i / int(population_size.get()) + 9)
                 population.append(a)
         else:
             output_str += "Стратегия дробовика: \n"
             for i in range(int(population_size.get())):
-                a = int(6 / (int(population_size.get()) * 2) + 6 * i / int(population_size.get()) + 9)
+                a = random.randint(9, 14)
                 population.append(a)
-        size_of_new_generation = int(int(population_size.get()) * 0.6)
+        size_of_new_generation = int(population_size.get())
         output_str += toString(population)
         # генерации согласно условиям
         for count in range(int(number_of_generations.get())):
@@ -340,9 +378,10 @@ def main_function():
                 # определение оператора мутации и инверсии
                 if mutation_and_inversion_operators_select.get() == 1:
                     output_str += "Мутация на осонове на основе «Золотого сечения».:\n"
+                    choice = str(bin(new_population[сhromosome]))
                     new_population = Exchange_based_on_golden_section(new_population, сhromosome)
                 else:
-                    output_str += separator + "\n" + "Инверсия:\n"
+                    output_str += "\n" + "Инверсия:\n"
                     new_population = Inversion_mutation(new_population, сhromosome, gene_number)
                 output_str += separator + "\n" + "Выбраная хромосома до мутации: " + str(
                     bin(new_population[сhromosome]))[
@@ -364,7 +403,7 @@ if __name__ == '__main__':
     window.title("ХИЖНИЙ ЕВГЕНИЙ, 21 ГРУППА, ВАРИАНТ №26")
     window.geometry('910x600')
     # Размер популяции
-    label_for_initial_population_strategy_select = Label(window, text="Размер популяции:", fg="white",
+    label_for_population_size = Label(window, text="Размер популяции:", fg="white",
                                                          background="black")
     population_size = Entry(window, width=10)
     population_size.insert(0, 10)
@@ -420,7 +459,7 @@ if __name__ == '__main__':
     answer_text = Entry(width=10)
 
     # размещение всех элементов в окне
-    label_for_initial_population_strategy_select.grid(column=0, row=0)
+    label_for_population_size.grid(column=0, row=0)
     population_size.grid(column=0, row=1)
 
     label_for_number_of_generations.grid(column=0, row=2)
